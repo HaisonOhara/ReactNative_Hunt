@@ -1,57 +1,76 @@
 import React, { Component } from 'react';
 import api from '../services/api';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet } from "react-native";
+import pokemonSprites from '../services/pokemonSprites'
+import { View, Image, Text, FlatList, TouchableOpacity, StyleSheet } from "react-native";
 
 export default class Main extends Component {
-
     static navigationOptions = {
-        title: "JSHunt"
+        title: "Pokedex"
     };
 
     state = {
         productInfo: {},
-        docs: [],
-        page: 1,
+        results: [],
+        // page: 1,
+        offSet: 0,
+        limit: 20,
+        ImageUrl: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/"
     };
 
     componentDidMount() {
-        this.loadProducts();
+        this.loadPokemons();
+        this.loadPokemonsSprites();
+
+    }
+    loadPokemonsSprites = async () => {
+        // const response = await pokemonSprites.get(`132.jpg`);
+
     }
 
-    loadProducts = async (page = 1) => {
-        const response = await api.get(`/products?page=${page}`);
+    loadPokemons = async (offSet = 0) => {
+        const response = await api.get(`/pokemon?offset=${offSet}&limit=${this.state.limit}`);
 
-        const { docs, ...productInfo } = response.data;
+        const { results, ...productInfo } = response.data;
 
         this.setState({
-            docs: [...this.state.docs, ...docs],
+            results: [...this.state.results, ...results],
             productInfo,
-            page
+            offSet
 
         })
     };
 
     loadMore = () => {
-        const { page, productInfo } = this.state;
+        const { offSet, productInfo } = this.state;
         // Pages 'a variavel de numero maximo de paginas nessa api utlizada como exemplo
-        if (page == productInfo.pages) return;
+        if (productInfo.next == null) return;
 
-        const pageNumber = page + 1;
+        const offSetNumber = offSet + this.state.limit;
 
-        this.loadProducts(pageNumber);
+        this.loadPokemons(offSetNumber);
     }
+
+
+    takeIdFromUrl = (baseURL) => {
+        const id = baseURL.replace("https://pokeapi.co/api/v2/pokemon/", "").replace("/", "");
+        return id;
+    }
+
 
     renderItem = ({ item }) => (
         <View style={styles.productContainer}>
-            <Text style={styles.productTitle}>{item.title}</Text>
-            <Text style={styles.productDescription}>{item.description}</Text>
-
+            <Text style={styles.pokemonName}>{this.takeIdFromUrl(item.url)}-{item.name}</Text>
+            {/* <Text style={styles.productDescription}>{item.description}</Text> */}
+            <Image
+                style={styles.Image}
+                source={{ uri: this.state.ImageUrl + this.takeIdFromUrl(item.url) + ".png" }}
+            />
             <TouchableOpacity style={styles.productButton}
                 onPress={() => {
-                    this.props.navigation.navigate("Product", { product: item })
+                    this.props.navigation.navigate("Pokemon", { pokemon: item })
                 }}
             >
-                <Text style={styles.productButtonText}>Acessar</Text>
+                <Text style={styles.productButtonText}>Detalhes do Pokemon</Text>
             </TouchableOpacity>
         </View>
     );
@@ -60,11 +79,11 @@ export default class Main extends Component {
             <View style={styles.container}>
                 <FlatList
                     contentContainerStyle={styles.list}
-                    data={this.state.docs}
-                    keyExtractor={item => item._id}
+                    data={this.state.results}
+                    keyExtractor={item => item.url}
                     renderItem={this.renderItem}
                     onEndReached={this.loadMore}
-                    onEndReachedThreshold={0.1}
+                    onEndReachedThreshold={0.3}
                 />
             </View>
         );
@@ -73,7 +92,7 @@ export default class Main extends Component {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#fafafa"
+        backgroundColor: "#FF6347"
     },
     list: {
         padding: 20
@@ -86,7 +105,8 @@ const styles = StyleSheet.create({
         padding: 20,
         marginBottom: 20,
     },
-    productTitle: {
+    pokemonName: {
+        textTransform: 'capitalize',
         fontSize: 18,
         fontWeight: "bold",
         color: "#333",
@@ -101,16 +121,24 @@ const styles = StyleSheet.create({
         height: 42,
         borderRadius: 5,
         borderWidth: 2,
-        borderColor: "#DA552F",
-        backgroundColor: "transparent",
+        borderColor: "#B22222",
+        backgroundColor: "#B22222",
         justifyContent: 'center',
         alignItems: 'center',
         marginTop: 10
     },
     productButtonText: {
         fontSize: 16,
-        color: "#DA552F",
+        color: "#FFFAF0",
         fontWeight: "bold"
+    },
+    Image: {
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: 150,
+        width: 150,
+
     }
 
 });
